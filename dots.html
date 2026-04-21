@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dotted Surface - Pure JS</title>
+    <link rel="stylesheet" href="styles.css" />
+    <!-- Three.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+      /* CSS Reset and Base */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body {
+        background-color: #0f172a00;
+        color: #f8fafc;
+        overflow-x: hidden;
+        transition:
+          background-color 0.3s ease,
+          color 0.3s ease;
+      }
+
+      /* Dark Theme */
+      body.dark {
+        background-color: #0f172a;
+        color: #f8fafc;
+      }
+
+      /* Utility Classes (Tailwind-inspired) */
+      .fixed {
+        position: fixed;
+      }
+      .inset-0 {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+      }
+      .-z-1 {
+        z-index: -1;
+      }
+      .pointer-events-none {
+        pointer-events: none;
+      }
+      .min-h-screen {
+        min-height: 100vh;
+      }
+      .flex {
+        display: flex;
+      }
+      .flex-col {
+        flex-direction: column;
+      }
+      .items-center {
+        align-items: center;
+      }
+      .justify-center {
+        justify-content: center;
+      }
+      .relative {
+        position: relative;
+      }
+      .z-10 {
+        z-index: 10;
+      }
+      .flex-1 {
+        flex-grow: 1;
+      }
+      .p-8 {
+        padding: 2rem;
+      }
+      .text-center {
+        text-align: center;
+      }
+      .max-w-2xl {
+        max-width: 42rem;
+      }
+      .mx-auto {
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .font-mono {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+      .text-4xl {
+        font-size: 2.25rem;
+      }
+      .font-semibold {
+        font-weight: 600;
+      }
+      .-top-10 {
+        top: -2.5rem;
+      }
+      .left-12 {
+        left: 50%;
+      }
+      .size-full {
+        width: 100%;
+        height: 100%;
+      }
+      .-translate-x-12 {
+        transform: translateX(-50%);
+      }
+      .rounded-full {
+        border-radius: 9999px;
+      }
+      .blur-\[30px\] {
+        filter: blur(30px);
+      }
+      .bg-\[radial-gradient\(ellipse_at_center\,rgba\(255\,255\,255\,0\.1\)\,transparent_50\%\)\] {
+        background: radial-gradient(
+          ellipse at center,
+          rgba(255, 255, 255, 0.1),
+          transparent 50%
+        );
+      }
+
+      /* Theme-specific overrides for the radial gradient */
+      body.dark
+        .bg-\[radial-gradient\(ellipse_at_center\,rgba\(255\,255\,255\,0\.1\)\,transparent_50\%\)\] {
+        background: radial-gradient(
+          ellipse at center,
+          rgba(255, 255, 255, 0.05),
+          transparent 50%
+        );
+      }
+
+      /* Demo Content Styling */
+      #dotted-surface-container canvas {
+        display: block; /* Removes extra space below canvas */
+      }
+
+      /* Fixed Theme Toggle Button */
+      #theme-toggle {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 50;
+        padding: 0.5rem;
+        border-radius: 9999px;
+        background-color: #334155;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      #theme-toggle:hover {
+        background-color: #475569;
+      }
+      body.dark #theme-toggle {
+        background-color: #f1f5f9;
+        color: #1e293b;
+      }
+      #theme-toggle {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The container for the Three.js canvas -->
+    <div
+      id="dotted-surface-container"
+      class="fixed inset-0 -z-1 pointer-events-none"
+    ></div>
+
+    <!-- Demo Content (mirrors the React demo) -->
+    <main class="min-h-screen flex flex-col relative">
+      <div class="relative z-10 flex-1 flex items-center justify-center p-8">
+        <div class="text-center max-w-2xl mx-auto">
+          <div
+            aria-hidden="true"
+            class="pointer-events-none absolute -top-10 left-12 size-full -translate-x-12 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.1),transparent_50%)] blur-[30px]"
+          ></div>
+          <!-- <h1 class="font-mono text-4xl font-semibold">Dotted Surface</h1> -->
+        </div>
+      </div>
+    </main>
+
+    <!-- Theme Toggle Button -->
+    <button
+      id="theme-toggle"
+      class="fixed top-4 right-4 z-50 p-2 rounded-full bg-slate-800 text-white hover:bg-slate-700 transition-colors"
+    >
+      Toggle Theme
+    </button>
+
+    <script>
+      // DOM Elements
+      const container = document.getElementById("dotted-surface-container");
+      const themeToggle = document.getElementById("theme-toggle");
+
+      // Theme State
+      let isDark = false;
+
+      // Three.js Scene Variables
+      let scene, camera, renderer, particles, geometry, material;
+      let animationId;
+      let count = 0;
+
+      // Initialize the scene
+      function init() {
+        if (!container) return;
+
+        const SEPARATION = 150;
+        const AMOUNTX = 40;
+        const AMOUNTY = 60;
+
+        // 1. Scene Setup
+        scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0xffffff, 2000, 10000);
+
+        // 2. Camera Setup
+        camera = new THREE.PerspectiveCamera(
+          60,
+          window.innerWidth / window.innerHeight,
+          1,
+          10000,
+        );
+        camera.position.set(0, 355, 1220);
+
+        // 3. Renderer Setup
+        renderer = new THREE.WebGLRenderer({
+          alpha: true,
+          antialias: true,
+        });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(scene.fog.color, 0);
+        container.appendChild(renderer.domElement);
+
+        // 4. Create Particles
+        geometry = new THREE.BufferGeometry();
+        const positions = [];
+        const colors = [];
+
+        for (let ix = 0; ix < AMOUNTX; ix++) {
+          for (let iy = 0; iy < AMOUNTY; iy++) {
+            const x = ix * SEPARATION - (AMOUNTX * SEPARATION) / 2;
+            const y = 0;
+            const z = iy * SEPARATION - (AMOUNTY * SEPARATION) / 2;
+
+            positions.push(x, y, z);
+            // Initial color based on theme
+            if (isDark) {
+              colors.push(200 / 255, 200 / 255, 200 / 255); // Three.js uses normalized colors (0-1)
+            } else {
+              colors.push(200, 200, 200);
+            }
+          }
+        }
+
+        geometry.setAttribute(
+          "position",
+          new THREE.Float32BufferAttribute(positions, 3),
+        );
+        geometry.setAttribute(
+          "color",
+          new THREE.Float32BufferAttribute(colors, 3),
+        );
+
+        material = new THREE.PointsMaterial({
+          size: 8,
+          vertexColors: true,
+          transparent: true,
+          opacity: 0.8,
+          sizeAttenuation: true,
+        });
+
+        particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+
+        // 5. Start Animation
+        animate();
+
+        // 6. Handle Resize
+        window.addEventListener("resize", onWindowResize);
+      }
+
+      // Animation Loop
+      function animate() {
+        animationId = requestAnimationFrame(animate);
+
+        const positionAttribute = geometry.attributes.position;
+        const positions = positionAttribute.array;
+
+        let i = 0;
+        for (let ix = 0; ix < 40; ix++) {
+          for (let iy = 0; iy < 60; iy++) {
+            const index = i * 3;
+            // Animate Y position with sine waves
+            positions[index + 1] =
+              Math.sin((ix + count) * 0.3) * 50 +
+              Math.sin((iy + count) * 0.5) * 50;
+            i++;
+          }
+        }
+
+        positionAttribute.needsUpdate = true;
+        renderer.render(scene, camera);
+        count += 0.1;
+      }
+
+      // Handle Window Resize
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      // Update Colors Based on Theme
+      function updateTheme() {
+        const colors = geometry.attributes.color.array;
+        const colorValue = isDark ? 200 / 255 : 0;
+
+        for (let i = 0; i < colors.length; i += 3) {
+          colors[i] = colorValue; // R
+          colors[i + 1] = colorValue; // G
+          colors[i + 2] = colorValue; // B
+        }
+
+        geometry.attributes.color.needsUpdate = true;
+      }
+
+      // Theme Toggle Event
+      themeToggle.addEventListener("click", () => {
+        isDark = !isDark;
+        document.body.classList.toggle("dark", isDark);
+        updateTheme();
+      });
+
+      // Initialize on Load
+      document.addEventListener("DOMContentLoaded", init);
+    </script>
+  </body>
+</html>
