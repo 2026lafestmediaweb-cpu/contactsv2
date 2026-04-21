@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Neural Background</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: rgb(0, 0, 0);
+      }
+
+      #container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const container = document.getElementById("container");
+      const ctx = canvas.getContext("2d");
+
+      let width = container.clientWidth;
+      let height = container.clientHeight;
+
+      let particles = [];
+      let mouse = { x: -1000, y: -1000 };
+
+      // ⚙️ CONFIG
+      const color = "#818cf8";
+      const trailOpacity = 0.1;
+      const particleCount = 600;
+      const speed = 0.8;
+
+      class Particle {
+        constructor() {
+          this.reset();
+        }
+
+        reset() {
+          this.x = Math.random() * width;
+          this.y = Math.random() * height;
+          this.vx = 0;
+          this.vy = 0;
+          this.age = 0;
+          this.life = Math.random() * 200 + 100;
+        }
+
+        update() {
+          const angle =
+            (Math.cos(this.x * 0.005) + Math.sin(this.y * 0.005)) * Math.PI;
+
+          this.vx += Math.cos(angle) * 0.2 * speed;
+          this.vy += Math.sin(angle) * 0.2 * speed;
+
+          const dx = mouse.x - this.x;
+          const dy = mouse.y - this.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const radius = 150;
+
+          if (distance < radius) {
+            const force = (radius - distance) / radius;
+            this.vx -= dx * force * 0.05;
+            this.vy -= dy * force * 0.05;
+          }
+
+          this.x += this.vx;
+          this.y += this.vy;
+
+          this.vx *= 0.95;
+          this.vy *= 0.95;
+
+          this.age++;
+          if (this.age > this.life) this.reset();
+
+          if (this.x < 0) this.x = width;
+          if (this.x > width) this.x = 0;
+          if (this.y < 0) this.y = height;
+          if (this.y > height) this.y = 0;
+        }
+
+        draw() {
+          const alpha = 1 - Math.abs(this.age / this.life - 0.5) * 2;
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = color;
+          ctx.fillRect(this.x, this.y, 1.5, 1.5);
+        }
+      }
+
+      // INIT
+      function init() {
+        const dpr = window.devicePixelRatio || 1;
+
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+
+        particles = [];
+        for (let i = 0; i < particleCount; i++) {
+          particles.push(new Particle());
+        }
+      }
+
+      // ANIMATE
+      function animate() {
+        ctx.fillStyle = `rgba(0,0,0,${trailOpacity})`;
+        ctx.fillRect(0, 0, width, height);
+
+        particles.forEach((p) => {
+          p.update();
+          p.draw();
+        });
+
+        requestAnimationFrame(animate);
+      }
+
+      // EVENTS
+      window.addEventListener("resize", () => {
+        width = container.clientWidth;
+        height = container.clientHeight;
+        init();
+      });
+
+      container.addEventListener("mousemove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+      });
+
+      container.addEventListener("mouseleave", () => {
+        mouse.x = -1000;
+        mouse.y = -1000;
+      });
+
+      // START
+      init();
+      animate();
+    </script>
+  </body>
+</html>

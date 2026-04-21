@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Realistic 3D Phone</title>
+    <link rel="stylesheet" href="/common-navbar.css" />
+
+    <style>
+      :root {
+        --depth: 16px;
+        --width: 300px;
+        --height: 620px;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", sans-serif;
+      }
+
+      body {
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        background: radial-gradient(circle at top, #152347, #010205);
+        color: white;
+      }
+
+      /* NAVBAR */
+      /* .navbar {
+              height: 70px;
+              display: flex;
+              align-items: center;
+              padding: 0 40px;
+              border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+            }
+            .navbar h1 {
+              color: cyan;
+            } */
+
+      /* MAIN */
+      .main {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .scene {
+        perspective: 1400px;
+      }
+
+      /* PHONE */
+      .phone-3d {
+        width: var(--width);
+        height: var(--height);
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 0.15s ease;
+      }
+
+      /* FACES */
+      .face {
+        position: absolute;
+        border-radius: 3px;
+      }
+
+      /* FRONT */
+      .front {
+        width: 100%;
+        height: 100%;
+        background: #02060f;
+        transform: translateZ(var(--depth));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* SCREEN */
+      .screen {
+        width: 94%;
+        height: 96%;
+        overflow-y: auto;
+        /* add extra top padding so notch doesn't cover content */
+        padding: 33px 12px 12px;
+        background: #050a14;
+        box-shadow:
+          inset 0 0 25px rgba(0, 0, 0, 0.9),
+          inset 0 0 10px rgba(0, 255, 255, 0.05);
+        transition: 0.3s;
+      }
+
+      /* CAMERA NOTCH */
+      .notch {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 96px;
+        height: 22px;
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+        background: linear-gradient(
+          180deg,
+          rgba(0, 0, 0, 0.6),
+          rgba(0, 0, 0, 0.45)
+        );
+        box-shadow:
+          0 6px 14px rgba(0, 0, 0, 0.6),
+          inset 0 -1px 0 rgba(255, 255, 255, 0.02);
+
+        -webkit-backdrop-filter: blur(6px) saturate(120%);
+        backdrop-filter: blur(6px) saturate(120%);
+        z-index: 6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+      .notch .inner {
+        width: calc(100% - 18px);
+        height: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+      .notch .lens {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 30% 30%, #ffffff, #666);
+        box-shadow:
+          0 0 0 2px rgba(0, 0, 0, 0.35),
+          0 1px 4px rgba(0, 0, 0, 0.6);
+      }
+      .notch .dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      /* SCREEN OFF */
+      .screen.off {
+        background: black;
+        box-shadow: inset 0 0 40px black;
+      }
+      .screen.off * {
+        opacity: 0;
+      }
+
+      /* BACK */
+      .back {
+        width: 100%;
+        height: 100%;
+        transform: rotateY(180deg) translateZ(var(--depth));
+        /* background-image: url("logo.png"); */
+        /* background-size: contain; */
+        /* background-repeat: no-repeat; */
+        /* background-position: center; */
+        /* background: linear-gradient(160deg, #0e1628, #02060f); */
+        background-image:
+          url("logo.png"), linear-gradient(160deg, #020818, #000000);
+        background-repeat: no-repeat, no-repeat;
+        background-position: center, center;
+        /* IMPORTANT: image stays its natural size */
+        background-size: contain, cover;
+      }
+
+      /* CAMERA */
+      .camera-module {
+        position: absolute;
+        top: 18px;
+        left: 18px;
+        width: 82px;
+        height: 82px;
+        background: #0b0f18;
+        border-radius: 22px;
+      }
+      .lens {
+        position: absolute;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #444, #000);
+      }
+      .l1 {
+        top: 10px;
+        left: 10px;
+      }
+      .l2 {
+        top: 10px;
+        right: 10px;
+      }
+      .l3 {
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      /* SIDES */
+      .left,
+      .right {
+        width: calc(var(--depth) * 2);
+        height: 100%;
+        top: 0;
+        position: absolute;
+        background: linear-gradient(90deg, #090e1a, #0b152c, #0e1628);
+      }
+
+      .left {
+        transform: rotateY(-90deg) translateZ(var(--depth));
+      }
+      .right {
+        transform: rotateY(90deg) translateZ(calc(var(--width) - var(--depth)));
+      }
+
+      /* TOP & BOTTOM */
+      .top,
+      .bottom {
+        width: 100%;
+        height: calc(var(--depth) * 2);
+        position: absolute;
+        background: linear-gradient(180deg, #02060f, #000920, #02060f);
+      }
+
+      .top {
+        transform: rotateX(90deg) translateZ(var(--depth));
+        top: -2px;
+      }
+      .bottom {
+        transform: rotateX(-90deg)
+          translateZ(calc(var(--height) - var(--depth)));
+      }
+
+      /* SPEAKER */
+      .speaker {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 60px;
+        height: 6px;
+        transform: translate(-50%, -50%);
+        background: repeating-linear-gradient(90deg, #111 0 2px, #444 2px 4px);
+        border-radius: 10px;
+      }
+
+      /* PORT */
+      .port {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 40px;
+        height: 10px;
+        transform: translate(-50%, -50%);
+        background: #111;
+        border-radius: 6px;
+      }
+
+      /* HOLES */
+      .holes {
+        position: absolute;
+        top: 50%;
+        width: 50px;
+        height: 6px;
+        transform: translateY(-50%);
+        background: repeating-linear-gradient(
+          90deg,
+          #111 0 2px,
+          transparent 2px 6px
+        );
+      }
+      .left-holes {
+        left: 20px;
+      }
+      .right-holes {
+        right: 20px;
+      }
+
+      /* BUTTONS */
+      .btn {
+        position: absolute;
+        width: 6px;
+        height: 40px;
+        background: linear-gradient(180deg, #57555a, #3b4572);
+        border-radius: 4px;
+      }
+
+      /* volume */
+      .volume-up {
+        top: 120px;
+        left: 13px;
+      }
+      .volume-down {
+        top: 180px;
+        left: 13px;
+      }
+
+      /* power */
+      .power-btn {
+        top: 150px;
+        right: 13px;
+        height: 50px;
+        cursor: pointer;
+      }
+
+      /* CONTACT */
+      /* CONTACT UI (only styles below affect contacts inside the phone) */
+      .contact {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.02),
+          rgba(255, 255, 255, 0.005)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 10px;
+        box-shadow:
+          0 4px 10px rgba(2, 6, 15, 0.55),
+          inset 0 1px 0 rgba(255, 255, 255, 0.01);
+        transition:
+          transform 0.14s ease,
+          box-shadow 0.14s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      /* premium frosted glass overlay and animated sheen */
+      .contact::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 10px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.022),
+          rgba(255, 255, 255, 0.006)
+        );
+
+        -webkit-backdrop-filter: blur(14px) saturate(150%) contrast(1.02);
+        backdrop-filter: blur(14px) saturate(150%) contrast(1.02);
+        opacity: 0;
+        transform: translateY(6px) scale(0.995);
+        transition:
+          opacity 220ms ease,
+          transform 300ms cubic-bezier(0.2, 0.9, 0.2, 1);
+        z-index: 1;
+        pointer-events: none;
+        mix-blend-mode: screen;
+      }
+
+      /* animated glossy sheen that sweeps across the card */
+      .contact::after {
+        content: "";
+        position: absolute;
+        left: -60%;
+        top: -30%;
+        width: 220%;
+        height: 160%;
+        transform: rotate(-18deg) translateX(-60%);
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.18) 0%,
+          rgba(255, 255, 255, 0.06) 18%,
+          rgba(255, 255, 255, 0.02) 32%,
+          rgba(255, 255, 255, 0) 50%
+        );
+        filter: blur(8px);
+        opacity: 0;
+        z-index: 2;
+        pointer-events: none;
+        transition:
+          opacity 260ms ease,
+          transform 800ms cubic-bezier(0.2, 0.9, 0.2, 1);
+      }
+
+      .contact > * {
+        position: relative;
+        z-index: 3;
+      }
+
+      .contact:hover {
+        transform: translateY(-3px) scale(1.002);
+        box-shadow:
+          0 18px 40px rgba(2, 6, 15, 0.7),
+          0 0 32px rgba(6, 182, 212, 0.06);
+        border-color: rgba(255, 255, 255, 0.192);
+      }
+
+      .contact:hover::before {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      .contact:hover::after {
+        opacity: 0.95;
+        transform: rotate(-18deg) translateX(60%);
+        transition:
+          transform 700ms cubic-bezier(0.2, 0.9, 0.2, 1),
+          opacity 220ms ease;
+        animation: sheenMove 1.1s ease 0s 1;
+      }
+
+      @keyframes sheenMove {
+        from {
+          transform: rotate(-18deg) translateX(-60%);
+          opacity: 0;
+        }
+        30% {
+          opacity: 0.9;
+        }
+        to {
+          transform: rotate(-18deg) translateX(60%);
+          opacity: 0;
+        }
+      }
+      .contact .meta {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 0;
+      }
+      .name {
+        font-weight: 900;
+        font-size: 12px;
+        color: #e6f7fb;
+        white-space: nowrap;
+        /* overflow: hidden; */
+        text-overflow: ellipsis;
+      }
+      .post {
+        font-size: 10px;
+        opacity: 0.62;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+      .number {
+        font-size: 12px;
+        color: #9eeef6;
+        opacity: 0.95;
+        font-weight: 600;
+      }
+      /* BUTTON */
+      .copy-btn {
+        flex: 0 0 auto;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: transparent;
+        color: #f7f7f7;
+        cursor: pointer;
+        font-weight: 900;
+        font-size: 12px;
+        box-shadow: 0 4px 10px rgba(6, 182, 212, 0.03);
+        border: 1px solid rgba(6, 182, 212, 0.16);
+        transition:
+          background 0.18s ease,
+          color 0.12s ease,
+          transform 0.06s ease;
+      }
+      .copy-btn:hover {
+        background: linear-gradient(90deg, #099eb821, #00e6db3b);
+        color: rgba(0, 0, 0, 0.85);
+      }
+      .copy-btn:active {
+        transform: translateY(1px);
+      }
+
+      /* SCROLLBAR */
+      .screen::-webkit-scrollbar {
+        width: 2px;
+      }
+      .screen::-webkit-scrollbar-thumb {
+        background: rgb(13, 55, 94);
+        border-radius: 10px;
+      }
+
+      /* FOOTER */
+      .footer {
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-top: 1px solid rgba(0, 255, 255, 0.2);
+        font-size: 13px;
+        opacity: 0.7;
+      }
+
+      iframe {
+        position: absolute;
+        height: 100vh;
+        width: 100%;
+        z-index: -1;
+        pointer-events: auto;
+      }
+
+      .back {
+        z-index: -2;
+        pointer-events: visible;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar-container">
+      <button class="menu-toggle" aria-label="Toggle menu">
+        <div></div>
+        <div></div>
+        <div></div>
+      </button>
+      <nav class="navbar">
+        <a href="../HOME/index.html">HOME</a>
+        <a href="../events2.1/index.html">EVENTS</a>
+        <a href="../rules v2/index.html">RULES</a>
+        <a href="../legacy2/legacyindex.html">LEGACY</a>
+        <a href="contacts_updated.html" class="active">CONTACTS</a>
+      </nav>
+    </div>
+
+    <iframe
+      src="../test/index.html"
+      frameborder="0"
+      width="100%"
+      height="100vh"
+      scrolling="no"
+      title="background"
+    ></iframe>
+
+    <iframe
+      src="../test/flowfield.html"
+      frameborder="0"
+      width="100%"
+      height="100vh"
+      scrolling="no"
+      title="background"
+      class="back"
+    ></iframe>
+
+    <div class="main">
+      <div class="scene">
+        <div class="phone-3d" id="phone">
+          <div class="face front">
+            <div class="notch" aria-hidden="true">
+              <div class="inner">
+                <div class="lens"></div>
+                <div class="dot"></div>
+              </div>
+            </div>
+            <div class="screen" id="contactList"></div>
+          </div>
+
+          <div class="face back">
+            <div class="camera-module">
+              <div class="lens l1"></div>
+              <div class="lens l2"></div>
+              <div class="lens l3"></div>
+            </div>
+          </div>
+
+          <div class="face left">
+            <div class="btn volume-up"></div>
+            <div class="btn volume-down"></div>
+          </div>
+
+          <div class="face right">
+            <div class="btn power-btn" id="powerBtn"></div>
+          </div>
+
+          <div class="face top">
+            <div class="speaker"></div>
+          </div>
+
+          <div class="face bottom">
+            <div class="port"></div>
+            <div class="holes left-holes"></div>
+            <div class="holes right-holes"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">© 2026</div>
+
+    <script>
+      const contacts = [
+        {
+          name: "FR. DR. SALVIN AUGUSTINE SJ ",
+          post: "PRINCIPAL",
+          number: "0000000000",
+        },
+        {
+          name: "FR. RAMLATT THOMAS SJ",
+          post: "PRINCIPAL CBSE",
+          number: "0000000000",
+        },
+        {
+          name: "SR. JIJI THOMAS",
+          post: "PRINCIPAL HSE",
+          number: "0000000000",
+        },
+        { name: "JUDY", post: "COORDINATOR", number: "0000000000" },
+        { name: "BINDU P", post: "COORDINATOR", number: "0000000000" },
+        {
+          name: "NAKUL B.L",
+          post: "GENERAL COORDINATOR",
+          number: "0000000000",
+        },
+        {
+          name: "ROHAN ANTONY",
+          post: "EVENTS COORDINATOR",
+          number: "9746683080",
+        },
+        { name: "AARYAN S", post: "HARMONY", number: "9388432737" },
+        {
+          name: "AIBEL VARGHESE",
+          post: "BLCOK N' TANGLES",
+          number: "9061003350",
+        },
+        { name: "GOWRI UMESH", post: "ENQUESTA", number: "6282385178" },
+        {
+          name: "AALAEHYA ARUN PANICKER",
+          post: "LA PERSONA",
+          number: "9037836223",
+        },
+        {
+          name: "SIDHANSHU SANJEEV SIVAN",
+          post: "DANCE O' MANIA",
+          number: "7907032227",
+        },
+        { name: "ADWAITH S", post: "DANCE O' MANIA", number: "0000000000" },
+        { name: "SAATHWIK JAGAN", post: "LEBATE", number: "9074025198" },
+        { name: "ANNE MARIA KURIAN", post: "L'UMINATE", number: "8374842204" },
+      ];
+
+      const container = document.getElementById("contactList");
+
+      contacts.forEach((c) => {
+        const div = document.createElement("div");
+        div.className = "contact";
+
+        div.innerHTML = `
+    <div class="meta">
+      <div class="name">${c.name}</div>
+      <div class="post">${c.post}</div>
+      <div class="number">${c.number}</div>
+    </div>
+    <button class="copy-btn">Copy</button>
+  `;
+
+        div.querySelector(".copy-btn").onclick = () => {
+          navigator.clipboard.writeText(c.number);
+          const btn = div.querySelector(".copy-btn");
+          btn.innerText = "Copied!";
+          setTimeout(() => (btn.innerText = "Copy"), 1000);
+        };
+
+        container.appendChild(div);
+      });
+
+      /* TILT */
+      const phone = document.getElementById("phone");
+
+      let currentX = 0;
+      let currentY = 0;
+
+      document.addEventListener("mousemove", (e) => {
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+
+        let deltaX = (e.clientX - centerX) / centerX;
+        let deltaY = (e.clientY - centerY) / centerY;
+
+        // 🔥 Increase strength
+        let rotateY = deltaX * 160; // LEFT/RIGHT (was too small)
+        let rotateX = -deltaY * 60; // TOP/BOTTOM (boosted)
+
+        // 🔒 Clamp (prevents flipping weirdly)
+        // rotateX = Math.max(-60, Math.min(60, rotateX));
+        // rotateY = Math.max(-80, Math.min(80, rotateY));
+
+        currentX = rotateX;
+        currentY = rotateY;
+
+        phone.style.transform = `
+    rotateX(${currentX}deg)
+    rotateY(${currentY}deg)
+  `;
+      });
+
+      /* POWER BUTTON */
+      const btn = document.getElementById("powerBtn");
+      const screen = document.getElementById("screen");
+
+      btn.onclick = () => {
+        screen.classList.toggle("off");
+      };
+    </script>
+  </body>
+</html>
